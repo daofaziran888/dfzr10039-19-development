@@ -795,5 +795,11 @@ SEED_ROWS: dict[str, list[dict[str, Any]]] = {
   '变更摘要': '操作审计样例3',
   '操作时间': '2026-09-03',
   '来源节点': '操作审计样例3',
-  '审计结果': '操作审计样例3'}]
+  '审计结果': '操作审计样例3'}],
+    # 失败重试派工：失败尝试、成功回执、重试候选清单、启动记录、采集进程
+    "failed_attempt": [],
+    "success_receipt": [],
+    "retry_list": [],
+    "dispatch_start": [],
+    "crawl_process": [],
 }

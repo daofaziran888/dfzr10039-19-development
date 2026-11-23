@@ -73,6 +73,32 @@ npm run dev
 | 导出任务 | `export_task` | 导出记录 | 记录编号、数据来源、导出格式 |
 | 操作审计 | `audit_log` | 审计记录 | 记录编号、操作模块、操作人 |
 
+## 失败尝试重试派工（解析日志扩展）
+
+解析日志模块新增失败尝试直派入口：把缺标题等失败尝试查出来、组装成重试候选
+清单交给采集任务，由清单驱动采集任务的待执行列表，进程领取实际采集入口。
+
+- 后端领域服务 `backend/app/services/retry_dispatch.py`：失败尝试游标查询
+  （按作业 + 异常类型筛选，`cursor` 接着上次读到的继续读）、重试候选清单
+  （组装 / 领取 / 派工 / 重送）、采集进程暂停恢复、成功回执补录与查询。
+- 录入服务 `backend/app/services/failure_ingest.py`：本地网页缺 `<title>`
+  记「缺标题」失败尝试，日志文件（JSON Lines）逐行登记。
+- 接口 `backend/app/routers/retry.py` 挂在 `/api/retry/*`；前端专用页
+  `frontend/src/views/RetryDispatchView.vue`，路由 `/parse_log/retry`。
+- 派工闸口原子化：同一输入（作业 + 地址 + 输入指纹）已有成功回执的绝不再跑，
+  同一输入只开跑一次；迟到的旧派工与重送并发到达也只放行一次；被拦时把
+  未启动原因记回原失败尝试，原查询页仍能定位。同一地址换一份输入是新记录，
+  旧回执管不到、仍可选。
+
+验收场景见 `backend/tests/test_retry_dispatch.py`：夜班选中 J72 的 A1、B1
+组装清单并领取，派工停在进程启动前；白班补录 A1 成功回执；旧派工与重送并发
+到达后恢复进程，只有 B1 开跑一次；再给 B1 记成功、提交同地址新输入 B2，
+重新筛选并领取 B2。
+
+```bash
+cd backend && .venv/bin/python -m pytest tests/test_retry_dispatch.py -v
+```
+
 ## 约定
 
 - 全部模块共享`frontend/src/views/WorkbenchView.vue|tsx`和一套资源路由。
